@@ -275,7 +275,7 @@ void WeaselPanel::_HighlightText(CDCHandle dc, CRect rc, COLORREF color, COLORRE
 			bool IsBottomRightNeedToRound	= is_to_round_corner[m_style.layout_type == UIStyle::LAYOUT_HORIZONTAL][m_style.inline_preedit][static_cast<int>(type)][3];
 			int real_margin_x = (abs(m_style.margin_x) > m_style.hilite_padding) ? abs(m_style.margin_x) : m_style.hilite_padding;
 			int real_margin_y = (abs(m_style.margin_y) > m_style.hilite_padding) ? abs(m_style.margin_y) : m_style.hilite_padding;
-			int rr = m_style.round_corner_ex - m_style.border / 2 ;
+			int rr = m_style.round_corner_ex - m_style.border / 2  + (!!m_style.border);
 			hiliteBackPath = new GraphicsRoundRectPath(rc, rr, IsTopLeftNeedToRound, IsTopRightNeedToRound, IsBottomRightNeedToRound, IsBottomLeftNeedToRound);
 		}
 		// background or current candidate background not out of window background
@@ -284,6 +284,7 @@ void WeaselPanel::_HighlightText(CDCHandle dc, CRect rc, COLORREF color, COLORRE
 		g_back.FillPath(&back_brush, hiliteBackPath);
 		delete hiliteBackPath;
 	}
+	// draw hilited mark
 	if (highlighted && (m_style.hilited_mark_color & 0xff000000))
 	{
 		int topm = (rc.Height() - ((double)rc.Height() - (double)max(m_style.hilite_padding, m_style.round_corner) * 2) * 0.7) / 2;
@@ -293,6 +294,7 @@ void WeaselPanel::_HighlightText(CDCHandle dc, CRect rc, COLORREF color, COLORRE
 		Gdiplus::SolidBrush hl_brush(hlcl);
 		g_back.FillPath(&hl_brush, &hlp);
 	}
+	// draw border
 	if (type == BackType::BACKGROUND && m_style.border != 0 && (m_style.border_color & 0xff000000)) {
 		rc.DeflateRect(m_style.border / 2 , m_style.border / 2 );
 		GraphicsRoundRectPath bgPath(rc, m_style.round_corner_ex);
@@ -344,10 +346,12 @@ bool WeaselPanel::_DrawPreedit(Text const& text, CDCHandle dc, CRect const& rc)
 			}
 			{
 				// zzz[yyy]
+				int base_offset = (m_style.hilited_mark_color & 0xff000000) ? MARK_GAP : 0;
 				std::wstring str_highlight(t.substr(range.start, range.end - range.start));
 				CRect rc_hi(x, rc.top, x + (selEnd.cx - selStart.cx), rc.bottom);
 				CRect rct = rc_hi;
 				rc_hi.InflateRect(m_style.hilite_padding, m_style.hilite_padding);
+				rc_hi.left -= base_offset;
 				_HighlightText(dc, rc_hi, m_style.hilited_back_color, m_style.hilited_shadow_color, m_style.round_corner);
 				_TextOut(dc, x, rc.top, rct, str_highlight.c_str(), str_highlight.length(), &pFonts->m_TextFont, m_style.hilited_text_color, txtFormat);
 				x += (selEnd.cx - selStart.cx);
@@ -378,46 +382,86 @@ bool WeaselPanel::_DrawCandidates(CDCHandle dc)
 	const std::vector<Text> &labels(m_ctx.cinfo.labels);
 
 	BackType bkType = BackType::FIRST_CAND;
-	IDWriteTextFormat1* txtFormat = NULL;
+	IDWriteTextFormat1* txtFormat = (m_style.color_font) ? pDWR->pTextFormat : NULL;
+	IDWriteTextFormat1* labeltxtFormat = (m_style.color_font) ? pDWR->pLabelTextFormat : NULL;
+	IDWriteTextFormat1* commenttxtFormat = (m_style.color_font) ? pDWR->pCommentTextFormat : NULL;
+
+	// if candidate_shadow_color not transparent, draw candidate shadow first
+	if(m_style.candidate_shadow_color & 0xff000000)
+		for (size_t i = 0; i < candidates.size() && i < MAX_CANDIDATES_COUNT; ++i)
+		{
+			if (i == m_ctx.cinfo.highlighted) continue;	// draw non hilited candidates only 
+			if (candidates.size() == 1)
+				bkType = BackType::ONLY_CAND;
+			else if (i != 0 && i != candidates.size() - 1)
+				bkType = BackType::MID_CAND;
+			else if (i == candidates.size() - 1)
+				bkType = BackType::LAST_CAND;
+			CRect rect = m_layout->GetCandidateRect((int)i);
+			rect.InflateRect(m_style.hilite_padding, m_style.hilite_padding);
+			_HighlightText(dc, rect, 0x00000000, m_style.candidate_shadow_color, m_style.round_corner, bkType);
+		}
+	// draw non highlighted candidates, without shadow
 	for (size_t i = 0; i < candidates.size() && i < MAX_CANDIDATES_COUNT; ++i)
 	{
-		if (candidates.size() == 1)
-			bkType = BackType::ONLY_CAND;
-		else if (i != 0 && i != candidates.size() - 1)
-			bkType = BackType::MID_CAND;
-		else if (i == candidates.size() - 1)
-			bkType = BackType::LAST_CAND;
 		CRect rect;
-		rect = m_layout->GetCandidateRect((int)i);
-		rect.InflateRect(m_style.hilite_padding, m_style.hilite_padding);
-		if(m_style.hilited_mark_color >> 24)
-			rect.left -= MARK_GAP;
-		int txtColor = (i == m_ctx.cinfo.highlighted) ? m_style.hilited_candidate_text_color : m_style.candidate_text_color;
-		int txtLabelColor = (i == m_ctx.cinfo.highlighted) ? m_style.hilited_label_text_color : m_style.label_text_color;
-		int txtCommentColor = (i == m_ctx.cinfo.highlighted) ? m_style.hilited_comment_text_color : m_style.comment_text_color;
-		if (i == m_ctx.cinfo.highlighted)
-			_HighlightText(dc, rect, m_style.hilited_candidate_back_color, m_style.hilited_candidate_shadow_color, m_style.round_corner, bkType, true);
-		else
-			_HighlightText(dc, rect, m_style.candidate_back_color, m_style.candidate_shadow_color, m_style.round_corner, bkType);
-
+		if (m_style.candidate_back_color & 0xff000000)	// if transparent not to draw
+		{
+			if (i == m_ctx.cinfo.highlighted) continue;
+			if (candidates.size() == 1)
+				bkType = BackType::ONLY_CAND;
+			else if (i != 0 && i != candidates.size() - 1)
+				bkType = BackType::MID_CAND;
+			else if (i == candidates.size() - 1)
+			bkType = BackType::LAST_CAND;
+			rect = m_layout->GetCandidateRect((int)i);
+			rect.InflateRect(m_style.hilite_padding, m_style.hilite_padding);
+			_HighlightText(dc, rect, m_style.candidate_back_color, 0x00000000, m_style.round_corner, bkType);
+		}
 		// Draw label
 		std::wstring label = m_layout->GetLabelText(labels, (int)i, m_style.label_text_format.c_str());
 		rect = m_layout->GetCandidateLabelRect((int)i);
-		txtFormat = (m_style.color_font) ? pDWR->pLabelTextFormat : NULL;
-		_TextOut(dc, rect.left, rect.top, rect, label.c_str(), label.length(), &pFonts->m_LabelFont, txtLabelColor, txtFormat);
-
+		_TextOut(dc, rect.left, rect.top, rect, label.c_str(), label.length(), &pFonts->m_LabelFont, m_style.label_text_color, labeltxtFormat);
 		// Draw text
 		std::wstring text = candidates.at(i).str;
 		rect = m_layout->GetCandidateTextRect((int)i);
-		txtFormat = (m_style.color_font) ? pDWR->pTextFormat : NULL;
-		_TextOut(dc, rect.left, rect.top, rect, text.c_str(), text.length(), &pFonts->m_TextFont, txtColor, txtFormat);
-		
+		_TextOut(dc, rect.left, rect.top, rect, text.c_str(), text.length(), &pFonts->m_TextFont, m_style.candidate_text_color, txtFormat);
 		// Draw comment
 		std::wstring comment = comments.at(i).str;
 		if (!comment.empty()) {
 			rect = m_layout->GetCandidateCommentRect((int)i);
-			txtFormat = (m_style.color_font) ? pDWR->pCommentTextFormat : NULL;
-			_TextOut(dc, rect.left, rect.top, rect, comment.c_str(), comment.length(), &pFonts->m_CommentFont, txtCommentColor, txtFormat);
+			_TextOut(dc, rect.left, rect.top, rect, comment.c_str(), comment.length(), &pFonts->m_CommentFont, m_style.comment_text_color, commenttxtFormat);
+		}
+		drawn = true;
+	}
+	// draw highlighted candidate, on top of others
+	if(m_ctx.cinfo.candies.size())
+	{
+		bkType = BackType::FIRST_CAND;
+		if (candidates.size() == 1)
+			bkType = BackType::ONLY_CAND;
+		else if (m_ctx.cinfo.highlighted != 0 && m_ctx.cinfo.highlighted != candidates.size() - 1)
+			bkType = BackType::MID_CAND;
+		else if (m_ctx.cinfo.highlighted == candidates.size() - 1)
+			bkType = BackType::LAST_CAND;
+		CRect rect = m_layout->GetHighlightRect();
+		rect.InflateRect(m_style.hilite_padding, m_style.hilite_padding);
+		_HighlightText(dc, rect, m_style.hilited_candidate_back_color, m_style.hilited_candidate_shadow_color, m_style.round_corner, bkType, true);
+		// Draw label
+		std::wstring label = m_layout->GetLabelText(labels, m_ctx.cinfo.highlighted, m_style.label_text_format.c_str());
+		rect = m_layout->GetCandidateLabelRect(m_ctx.cinfo.highlighted);
+		_TextOut(dc, rect.left, rect.top, rect, label.c_str(), label.length(), &pFonts->m_LabelFont, m_style.hilited_label_text_color, labeltxtFormat);
+
+		// Draw text
+		std::wstring text = candidates.at(m_ctx.cinfo.highlighted).str;
+		rect = m_layout->GetCandidateTextRect((int)m_ctx.cinfo.highlighted);
+		_TextOut(dc, rect.left, rect.top, rect, text.c_str(), text.length(), &pFonts->m_TextFont, m_style.hilited_candidate_text_color, txtFormat);
+
+		// Draw comment
+		std::wstring comment = comments.at(m_ctx.cinfo.highlighted).str;
+		if (!comment.empty()) {
+			rect = m_layout->GetCandidateCommentRect((int)m_ctx.cinfo.highlighted);
+			_TextOut(dc, rect.left, rect.top, rect, comment.c_str(), comment.length(), &pFonts->m_CommentFont, m_style.hilited_comment_text_color, commenttxtFormat);
 		}
 		drawn = true;
 	}
@@ -475,6 +519,8 @@ void WeaselPanel::DoPaint(CDCHandle dc)
 			bgRc = rc;
 			bgRc.DeflateRect(m_layout->offsetX + 1, m_layout->offsetY + 1);
 			trc.DeflateRect(m_layout->offsetX - m_style.border + 1, m_layout->offsetY - m_style.border + 1);
+			if (m_style.border == 0)
+				trc.InflateRect(1, 1);
 			_HighlightText(memDC, trc, m_style.back_color, m_style.shadow_color, m_style.round_corner_ex + m_style.border / 2, BackType::BACKGROUND);
 		}
 		// background end

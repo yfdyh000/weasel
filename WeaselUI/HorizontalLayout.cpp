@@ -33,6 +33,7 @@ void HorizontalLayout::DoLayout(CDCHandle dc, GDIFonts* pFonts, DirectWriteResou
 		commentFont.CreateFontW(hcmmt, 0, 0, 0, pFonts->m_CommentFont.m_FontWeight, 0, 0, 0, DEFAULT_CHARSET, 0, 0, 0, 0, pFonts->m_CommentFont.m_FontFace.c_str());
 		oldFont = dc.SelectFont(textFont);
 	}
+	int base_offset =  (_style.hilited_mark_color & 0xff000000) ? MARK_GAP : 0;
 	/* Preedit */
 	if (!IsInlinePreedit() && !_context.preedit.str.empty())
 	{
@@ -43,12 +44,12 @@ void HorizontalLayout::DoLayout(CDCHandle dc, GDIFonts* pFonts, DirectWriteResou
 		if(STATUS_ICON_SIZE/ 2 >= (height + size.cy / 2) && ShouldDisplayStatusIcon())
 		{
 			height += (STATUS_ICON_SIZE - size.cy) / 2;
-			_preeditRect.SetRect(real_margin_x, height, real_margin_x + size.cx, height + size.cy);
+			_preeditRect.SetRect(real_margin_x + base_offset, height, real_margin_x + base_offset + size.cx, height + size.cy);
 			height += size.cy + (STATUS_ICON_SIZE - size.cy) / 2 + _style.spacing;
 		}
 		else
 		{
-			_preeditRect.SetRect(real_margin_x, height, real_margin_x + size.cx, height + size.cy);
+			_preeditRect.SetRect(real_margin_x + base_offset, height, real_margin_x + base_offset + size.cx, height + size.cy);
 			height += size.cy + _style.spacing;
 		}
 		_preeditRect.OffsetRect(offsetX, offsetY);
@@ -65,12 +66,12 @@ void HorizontalLayout::DoLayout(CDCHandle dc, GDIFonts* pFonts, DirectWriteResou
 		if(STATUS_ICON_SIZE/ 2 >= (height + size.cy / 2) && ShouldDisplayStatusIcon())
 		{
 			height += (STATUS_ICON_SIZE - size.cy) / 2 ;
-			_auxiliaryRect.SetRect(real_margin_x, height, real_margin_x + size.cx, height + size.cy);
+			_auxiliaryRect.SetRect(real_margin_x + base_offset, height, real_margin_x + base_offset + size.cx, height + size.cy);
 			height += size.cy + (STATUS_ICON_SIZE - size.cy) / 2 + _style.spacing;
 		}
 		else
 		{
-			_auxiliaryRect.SetRect(real_margin_x, height, real_margin_x + size.cx, height + size.cy);
+			_auxiliaryRect.SetRect(real_margin_x + base_offset, height, real_margin_x + base_offset + size.cx, height + size.cy);
 			height += size.cy + _style.spacing;
 		}
 		_auxiliaryRect.OffsetRect(offsetX, offsetY);
@@ -78,13 +79,11 @@ void HorizontalLayout::DoLayout(CDCHandle dc, GDIFonts* pFonts, DirectWriteResou
 	}
 
 	/* Candidates */
-	int w = real_margin_x, h = 0;
-	if (_style.hilited_mark_color & 0xff000000)
-		w += MARK_GAP;
+	int w = real_margin_x + base_offset, h = 0;
 	for (size_t i = 0; i < candidates.size() && i < MAX_CANDIDATES_COUNT; ++i)
 	{
 		if (i > 0)
-			w += _style.candidate_spacing;
+			w += _style.candidate_spacing - 1;
 
 		/* Label */
 		std::wstring label = GetLabelText(labels, i, _style.label_text_format.c_str());
@@ -135,7 +134,7 @@ void HorizontalLayout::DoLayout(CDCHandle dc, GDIFonts* pFonts, DirectWriteResou
 			_candidateCommentRects[i].SetRect(w, height, w, height + size.cy);
 		}
 		_candidateCommentRects[i].OffsetRect(offsetX, offsetY);
-		if (_style.hilited_mark_color & 0xff000000)
+		if (_style.hilited_mark_color & 0xff000000 && i < (candidates.size()-1))
 			w += MARK_GAP;
 	}
 	if(!_style.color_font)
@@ -194,7 +193,8 @@ void HorizontalLayout::DoLayout(CDCHandle dc, GDIFonts* pFonts, DirectWriteResou
 		}
 		hlTop = min(mintop, hlTop);
 		hlBot = max(maxbot, hlBot);
-		_candidateRects[i].SetRect(_candidateLabelRects[i].left, hlTop, _candidateCommentRects[i].right, hlBot);
+		int gap = (_style.hilited_mark_color & 0xff000000)!=0 ? MARK_GAP : 0;
+		_candidateRects[i].SetRect(_candidateLabelRects[i].left - gap, hlTop, _candidateCommentRects[i].right, hlBot);
 	}
 
 	width = max(width, w);
