@@ -229,3 +229,29 @@ IsWindowsServer()
 }
 
 #endif
+inline BOOL GetVersionEx2(LPOSVERSIONINFOW lpVersionInformation)
+{
+	HMODULE hNtDll = GetModuleHandleW(L"NTDLL"); // 获取ntdll.dll的句柄
+	typedef NTSTATUS(NTAPI* tRtlGetVersion)(PRTL_OSVERSIONINFOW povi); // RtlGetVersion的原型
+	tRtlGetVersion pRtlGetVersion = NULL;
+	if (hNtDll)
+	{
+		pRtlGetVersion = (tRtlGetVersion)GetProcAddress(hNtDll, "RtlGetVersion"); // 获取RtlGetVersion地址
+	}
+	if (pRtlGetVersion)
+	{
+		return pRtlGetVersion((PRTL_OSVERSIONINFOW)lpVersionInformation) >= 0; // 调用RtlGetVersion
+	}
+	return FALSE;
+}
+
+static inline BOOL IsWinVersionGreaterThan(DWORD dwMajorVersion, DWORD dwMinorVersion)
+{
+	OSVERSIONINFOEXW ovi = { sizeof ovi };
+	GetVersionEx2((LPOSVERSIONINFOW)&ovi);
+	if ((ovi.dwMajorVersion == dwMajorVersion && ovi.dwMinorVersion >= dwMinorVersion) || ovi.dwMajorVersion > dwMajorVersion)
+		return true;
+	else
+		return false;
+}
+#define IsWindows8Point10OrGreaterEx() IsWinVersionGreaterThan(6, 3)

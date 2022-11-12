@@ -9,32 +9,6 @@
 #include <regex>
 #include <rime_api.h>
 
-static inline BOOL GetVersionEx2(LPOSVERSIONINFOW lpVersionInformation)
-{
-	HMODULE hNtDll = GetModuleHandleW(L"NTDLL"); // 获取ntdll.dll的句柄
-	typedef NTSTATUS(NTAPI* tRtlGetVersion)(PRTL_OSVERSIONINFOW povi); // RtlGetVersion的原型
-	tRtlGetVersion pRtlGetVersion = NULL;
-	if (hNtDll)
-	{
-		pRtlGetVersion = (tRtlGetVersion)GetProcAddress(hNtDll, "RtlGetVersion"); // 获取RtlGetVersion地址
-	}
-	if (pRtlGetVersion)
-	{
-		return pRtlGetVersion((PRTL_OSVERSIONINFOW)lpVersionInformation) >= 0; // 调用RtlGetVersion
-	}
-	return FALSE;
-}
-
-static bool IsWindows8Point10OrGreaterEx()
-{
-	OSVERSIONINFOEXW ovi = { sizeof ovi };
-	GetVersionEx2((LPOSVERSIONINFOW)&ovi);
-	if ((ovi.dwMajorVersion == 6 && ovi.dwMinorVersion >= 3) || ovi.dwMajorVersion > 6)
-		return true;
-	else
-		return false;
-}
-
 static inline BOOL IsThemeLight()
 {
 	// only for windows 10 or greater, return false when lower version.
@@ -165,7 +139,6 @@ UINT RimeWithWeaselHandler::AddSession(LPWSTR buffer, EatLine eat)
 
 	if (m_ui)
 	{
-		//m_ui->style() = IsThemeLight() ? m_base_style : m_base_style_dark;
 		if (IsThemeLight())
 			CopyColorScheme(m_ui->style(), m_base_style);
 		else
@@ -675,33 +648,6 @@ static Bool RimeConfigGetColor32b(RimeConfig* config, const char* key, int* valu
 			*value = tmp | 0xff000000;
 	}
 	return True;
-}
-
-static inline BOOL IsWinVersionGreaterThan(DWORD dwMajorVersion, DWORD dwMinorVersion)
-{
-	OSVERSIONINFOEX osvi;
-	DWORDLONG dwlConditionMask = 0;
-
-	//Initialize the OSVERSIONINFOEX structure.
-	ZeroMemory(&osvi, sizeof(osvi));
-	osvi.dwOSVersionInfoSize = sizeof(osvi);
-	osvi.dwMajorVersion = dwMajorVersion;
-	osvi.dwMinorVersion = dwMinorVersion;
-
-	//system major version > dwMajorVersion
-	VER_SET_CONDITION(dwlConditionMask, VER_MAJORVERSION, VER_GREATER);
-	if (VerifyVersionInfo(&osvi, VER_MAJORVERSION, dwlConditionMask))
-		return TRUE;
-
-	//sytem major version = dwMajorVersion && minor version > dwMinorVersion
-	VER_SET_CONDITION(dwlConditionMask, VER_MAJORVERSION, VER_EQUAL);
-	VER_SET_CONDITION(dwlConditionMask, VER_MINORVERSION, VER_GREATER);
-
-	return VerifyVersionInfo(
-		&osvi,
-		VER_MAJORVERSION | VER_MINORVERSION,
-		dwlConditionMask
-	);
 }
 
 static void _UpdateUIStyle(RimeConfig* config, weasel::UI* ui, bool initialize)

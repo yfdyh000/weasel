@@ -509,9 +509,7 @@ void WeaselPanel::DoPaint(CDCHandle dc)
 		if (!m_ctx.empty()) {
 			bgRc = rc;
 			bgRc.DeflateRect(m_layout->offsetX + 1, m_layout->offsetY + 1);
-			trc.DeflateRect(m_layout->offsetX - m_style.border + 1, m_layout->offsetY - m_style.border + 1);
-			if (m_style.border == 0)
-				trc.InflateRect(1, 1);
+			trc.DeflateRect(m_layout->offsetX - m_style.border, m_layout->offsetY - m_style.border);
 			_HighlightText(memDC, trc, m_style.back_color, m_style.shadow_color, m_style.round_corner_ex + m_style.border / 2, BackType::BACKGROUND);
 		}
 		// background end
