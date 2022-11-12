@@ -49,7 +49,6 @@ namespace weasel
 		FontInfo TextFontInfo;
 		FontInfo LabelTextFontInfo;
 		FontInfo CommentTextFontInfo;
-		bool VerifyChanged(const weasel::UIStyle& style);
 	private:
 		void _ParseFontFace(const std::wstring fontFaceStr, std::wstring& fontFace, DWRITE_FONT_WEIGHT& fontWeight, DWRITE_FONT_STYLE& fontStyle, FontInfo& fontInfo);
 		void _SetFontFallback(IDWriteTextFormat1* pTextFormat, std::vector<std::wstring> fontVector);

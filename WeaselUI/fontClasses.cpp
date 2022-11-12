@@ -180,18 +180,7 @@ HRESULT DirectWriteResources::InitResources(const UIStyle& style)
 
 	return hResult;
 }
-bool weasel::DirectWriteResources::VerifyChanged(const weasel::UIStyle& style)
-{
-	return (style.font_face != TextFontInfo.m_FontFace
-		|| style.font_point != TextFontInfo.m_FontPoint
-		|| style.label_font_face != LabelTextFontInfo.m_FontFace
-		|| style.label_font_point != LabelTextFontInfo.m_FontPoint
-		|| style.comment_font_face != CommentTextFontInfo.m_FontFace
-		|| style.comment_font_point != CommentTextFontInfo.m_FontPoint
-		|| pTextFormat->GetFontSize() != style.font_point * dpiScaleX_
-		|| pLabelTextFormat->GetFontSize() != style.label_font_point * dpiScaleX_
-		|| pCommentTextFormat->GetFontSize() != style.comment_font_point * dpiScaleX_);
-}
+
 void DirectWriteResources::_ParseFontFace(const std::wstring fontFaceStr,
 		std::wstring& fontFace, DWRITE_FONT_WEIGHT& fontWeight, DWRITE_FONT_STYLE& fontStyle,
 		FontInfo& fontInfo)
