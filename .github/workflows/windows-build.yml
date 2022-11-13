@@ -72,7 +72,6 @@ jobs:
         run: |
           .\build.bat data
           .\build.bat hant
-          # mkdir output\archives
           .\build.bat installer
 
       #- name: Create distributable
