@@ -74,8 +74,8 @@ jobs:
 
       - name: Build Weasel
         id: build_weasel
-        # .\build.bat data
         run: |
+          .\build.bat data
           .\build.bat hant
           mkdir output\archives
           .\build.bat installer
@@ -89,9 +89,9 @@ jobs:
           #bin include lib share
 
       - name: Upload artifacts
-        if: steps.build_weasel.outputs.cache-hit == 'true'
         uses: actions/upload-artifact@v3
         with:
+          if-no-files-found: error
           path: |
             .\output\archives\weasel*.exe
             #weasel-${{ env.git_ref_name }}-${{ runner.os }}.7z
