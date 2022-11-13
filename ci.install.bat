@@ -1,5 +1,6 @@
 setlocal
 
+git submodule init
 git submodule update plum
 
 set rime_version=1.5.3

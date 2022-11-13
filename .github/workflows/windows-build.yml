@@ -72,6 +72,7 @@ jobs:
         run: |
           .\build.bat data
           .\build.bat hant
+          .\build.bat weasel
           .\build.bat installer
 
       #- name: Create distributable
