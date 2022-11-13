@@ -13,8 +13,8 @@ jobs:
   build:
     runs-on: windows-2019
     env:
-      boost_version: 1.69.0
-      BOOST_ROOT: ${{ github.workspace }}\deps\boost_1_69_0
+      boost_version: 1.76.0
+      BOOST_ROOT: ${{ github.workspace }}\deps\boost_1_76_0
       RIME_PLUGINS: ${{ inputs.rime_plugins }}
     steps:
       - name: Checkout last commit

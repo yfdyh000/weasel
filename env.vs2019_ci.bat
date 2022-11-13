@@ -1,6 +1,6 @@
 rem Customize your build environment and save the modified copy to env.bat
 set WEASEL_ROOT=%CD%
-set BOOST_ROOT=%WEASEL_ROOT%\deps\boost_1_78_0
+set BOOST_ROOT=%WEASEL_ROOT%\deps\boost_1_76_0
 
 rem REQUIRED: path to Boost source directory
 rem set BOOST_ROOT=C:\Libraries\boost_1_76_0
