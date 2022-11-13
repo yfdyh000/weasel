@@ -46,7 +46,7 @@ jobs:
           popd
 
       - name: Install Boost
-        if: steps.cache-boost.outputs.cache-hit != 'true'
+        #if: steps.cache-boost.outputs.cache-hit != 'true'
         run: .\install_boost.bat
 
       - name: Check submodules
