@@ -33,22 +33,22 @@ jobs:
         id: cache-boost
         uses: actions/cache@v3
         with:
+          #             ${{ env.BOOST_ROOT }}.7z
           #             ${{ env.BOOST_ROOT }}\stage
           #             ${{ env.BOOST_ROOT }}\stage_x64
           path: |
-            ${{ env.BOOST_ROOT }}.7z
             ${{ env.BOOST_ROOT }}
-          key: ${{ runner.os }}-boost-${{ env.boost_version }}-v1
+          key: ${{ runner.os }}-boost-${{ env.boost_version }}-1
 
-      - name: Extract Boost source tarball
-        if: steps.cache-boost.outputs.cache-hit == 'true'
-        run: |
-          pushd deps
-          7z x ${{ env.BOOST_ROOT }}.7z
-          popd
+      #- name: Extract Boost source tarball
+      #  if: steps.cache-boost.outputs.cache-hit == 'true'
+      #  run: |
+      #    pushd deps
+      #    7z x ${{ env.BOOST_ROOT }}.7z
+      #    popd
 
       - name: Install Boost
-        #if: steps.cache-boost.outputs.cache-hit != 'true'
+        if: steps.cache-boost.outputs.cache-hit != 'true'
         run: .\install_boost.bat
 
       - name: Check submodules
