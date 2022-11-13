@@ -15,15 +15,15 @@ using namespace weasel;
 
 typedef CWinTraits<WS_POPUP|WS_CLIPSIBLINGS|WS_DISABLED, WS_EX_TOOLWINDOW|WS_EX_TOPMOST> CWeaselPanelTraits;
 
-typedef enum _backType
+enum class BackType
 {
 	TEXT = 0,
-	FIRST_CAND,
-	MID_CAND,
-	LAST_CAND,
-	ONLY_CAND,
-	NOT_CAND	// background
-}BackType;
+	FIRST_CAND = 1,
+	MID_CAND = 2,
+	LAST_CAND = 3,
+	ONLY_CAND = 4,
+	BACKGROUND = 5	// background
+};
 
 class WeaselPanel : 
 	public CWindowImpl<WeaselPanel, CWindow, CWeaselPanelTraits>,
@@ -46,15 +46,16 @@ public:
 	void Refresh();
 	bool InitFontRes(void);
 	void DoPaint(CDCHandle dc);
-
+	void CleanUp();
+	void CaptureWindow();
 private:
 	void _CreateLayout();
 	void _ResizeWindow();
 	void _RepositionWindow(bool adj = false);
 	bool _DrawPreedit(weasel::Text const& text, CDCHandle dc, CRect const& rc);
 	bool _DrawCandidates(CDCHandle dc);
-	void _HighlightText(CDCHandle dc, CRect rc, COLORREF color, COLORREF shadowColor, int blurOffsetX, int blurOffsetY, int radius, BackType type );
-	void _TextOut(CDCHandle dc, int x, int y, CRect const& rc, LPCWSTR psz, size_t cch, FontInfo* pFontInfo, int inColor, IDWriteTextFormat* pTextFormat = NULL);
+	void _HighlightText(CDCHandle dc, CRect rc, COLORREF color, COLORREF shadowColor, int radius, BackType type, bool highlighted);
+	void _TextOut(CDCHandle dc, CRect const& rc, LPCWSTR psz, size_t cch, FontInfo* pFontInfo, int inColor, IDWriteTextFormat* pTextFormat = NULL);
 	bool _TextOutWithFallbackDW(CDCHandle dc, CRect const rc, std::wstring psz, size_t cch, COLORREF gdiColor, IDWriteTextFormat* pTextFormat);
 
 	bool _IsHighlightOverCandidateWindow(CRect rc, CRect bg, Gdiplus::Graphics* g);
@@ -62,11 +63,14 @@ private:
 
 	weasel::Layout *m_layout;
 	weasel::Context &m_ctx;
+	weasel::Context &m_octx;
 	weasel::Status &m_status;
 	weasel::UIStyle &m_style;
 	weasel::UIStyle &m_ostyle;
 
 	CRect m_inputPos;
+	CRect m_oinputPos;
+	CSize m_osize;
 
 	CIcon m_iconDisabled;
 	CIcon m_iconEnabled;
@@ -79,15 +83,12 @@ private:
 	// for hemispherical dome
 	CRect bgRc;
 	BYTE m_candidateCount;
-	// if hemispherical_dome has been trigged
-	bool m_hemispherical_dome = false;
 
 	bool hide_candidates;
 	// for multi font_face & font_point
 	GdiplusBlur* m_blurer;
 	DirectWriteResources* pDWR;
 	GDIFonts* pFonts;
-
 	ID2D1SolidColorBrush* pBrush;
 };
 

@@ -33,48 +33,67 @@ void HorizontalLayout::DoLayout(CDCHandle dc, GDIFonts* pFonts, DirectWriteResou
 		commentFont.CreateFontW(hcmmt, 0, 0, 0, pFonts->m_CommentFont.m_FontWeight, 0, 0, 0, DEFAULT_CHARSET, 0, 0, 0, 0, pFonts->m_CommentFont.m_FontFace.c_str());
 		oldFont = dc.SelectFont(textFont);
 	}
+	int base_offset =  (_style.hilited_mark_color & 0xff000000) ? MARK_GAP : 0;
 	/* Preedit */
 	if (!IsInlinePreedit() && !_context.preedit.str.empty())
 	{
-		if (!_style.color_font)
-			size = GetPreeditSize(dc, _context.preedit);
-		else
+		if (_style.color_font)
 			size = GetPreeditSize(dc, _context.preedit, pDWR->pTextFormat, pDWR->pDWFactory);
-		_preeditRect.SetRect(real_margin_x, height, real_margin_x + size.cx, height + size.cy);
+		else
+			size = GetPreeditSize(dc, _context.preedit);
+		if(STATUS_ICON_SIZE/ 2 >= (height + size.cy / 2) && ShouldDisplayStatusIcon())
+		{
+			height += (STATUS_ICON_SIZE - size.cy) / 2;
+			_preeditRect.SetRect(real_margin_x + base_offset, height, real_margin_x + base_offset + size.cx, height + size.cy);
+			height += size.cy + (STATUS_ICON_SIZE - size.cy) / 2 + _style.spacing;
+		}
+		else
+		{
+			_preeditRect.SetRect(real_margin_x + base_offset, height, real_margin_x + base_offset + size.cx, height + size.cy);
+			height += size.cy + _style.spacing;
+		}
 		_preeditRect.OffsetRect(offsetX, offsetY);
 		width = max(width, real_margin_x + size.cx + real_margin_x);
-		height += size.cy + _style.spacing;
 	}
 
 	/* Auxiliary */
 	if (!_context.aux.str.empty())
 	{
-		if (!_style.color_font)
-			size = GetPreeditSize(dc, _context.aux);
-		else
+		if (_style.color_font)
 			size = GetPreeditSize(dc, _context.aux, pDWR->pTextFormat, pDWR->pDWFactory);
-		_auxiliaryRect.SetRect(real_margin_x, height, real_margin_x + size.cx, height + size.cy);
+		else
+			size = GetPreeditSize(dc, _context.aux);
+		if(STATUS_ICON_SIZE/ 2 >= (height + size.cy / 2) && ShouldDisplayStatusIcon())
+		{
+			height += (STATUS_ICON_SIZE - size.cy) / 2 ;
+			_auxiliaryRect.SetRect(real_margin_x + base_offset, height, real_margin_x + base_offset + size.cx, height + size.cy);
+			height += size.cy + (STATUS_ICON_SIZE - size.cy) / 2 + _style.spacing;
+		}
+		else
+		{
+			_auxiliaryRect.SetRect(real_margin_x + base_offset, height, real_margin_x + base_offset + size.cx, height + size.cy);
+			height += size.cy + _style.spacing;
+		}
 		_auxiliaryRect.OffsetRect(offsetX, offsetY);
 		width = max(width, real_margin_x + size.cx + real_margin_x);
-		height += size.cy + _style.spacing;
 	}
 
 	/* Candidates */
-	int w = real_margin_x, h = 0;
+	int w = real_margin_x + base_offset, h = 0;
 	for (size_t i = 0; i < candidates.size() && i < MAX_CANDIDATES_COUNT; ++i)
 	{
 		if (i > 0)
-			w += _style.candidate_spacing;
+			w += _style.candidate_spacing - 1;
 
 		/* Label */
 		std::wstring label = GetLabelText(labels, i, _style.label_text_format.c_str());
-		if (!_style.color_font)
+		if (_style.color_font)
+			GetTextSizeDW(label, label.length(), pDWR->pLabelTextFormat, pDWR->pDWFactory, &size);
+		else
 		{
 			oldFont = dc.SelectFont(labelFont);
 			GetTextExtentDCMultiline(dc, label, label.length(), &size);
 		}
-		else
-			GetTextSizeDW(label, label.length(), pDWR->pLabelTextFormat, pDWR->pDWFactory, &size);
 
 		_candidateLabelRects[i].SetRect(w, height, w + size.cx * ((int)(pFonts->m_LabelFont.m_FontPoint > 0)), height + size.cy);
 		_candidateLabelRects[i].OffsetRect(offsetX, offsetY);
@@ -83,13 +102,13 @@ void HorizontalLayout::DoLayout(CDCHandle dc, GDIFonts* pFonts, DirectWriteResou
 
 		/* Text */
 		const std::wstring& text = candidates.at(i).str;
-		if (!_style.color_font)
+		if (_style.color_font)
+			GetTextSizeDW(text, text.length(), pDWR->pTextFormat, pDWR->pDWFactory, &size);
+		else
 		{
 			oldFont = dc.SelectFont(textFont);
 			GetTextExtentDCMultiline(dc, text, text.length(), &size);
 		}
-		else
-			GetTextSizeDW(text, text.length(), pDWR->pTextFormat, pDWR->pDWFactory, &size);
 
 		_candidateTextRects[i].SetRect(w, height, w + size.cx * ((int)(pFonts->m_TextFont.m_FontPoint > 0)), height + size.cy);
 		_candidateTextRects[i].OffsetRect(offsetX, offsetY);
@@ -99,13 +118,13 @@ void HorizontalLayout::DoLayout(CDCHandle dc, GDIFonts* pFonts, DirectWriteResou
 		if (!comments.at(i).str.empty() && pFonts->m_CommentFont.m_FontPoint > 0)
 		{
 			const std::wstring& comment = comments.at(i).str;
-			if (!_style.color_font)
+			if (_style.color_font)
+				GetTextSizeDW(comment, comment.length(), pDWR->pCommentTextFormat, pDWR->pDWFactory, &size);
+			else
 			{
 				oldFont = dc.SelectFont(commentFont);
 				GetTextExtentDCMultiline(dc, comment, comment.length(), &size);
 			}
-			else
-				GetTextSizeDW(comment, comment.length(), pDWR->pCommentTextFormat, pDWR->pDWFactory, &size);
 
 			_candidateCommentRects[i].SetRect(w, height, w + size.cx + space, height + size.cy);
 			w += (size.cx + space) * ((int)(pFonts->m_CommentFont.m_FontPoint > 0)), h = max(h, size.cy);
@@ -115,9 +134,14 @@ void HorizontalLayout::DoLayout(CDCHandle dc, GDIFonts* pFonts, DirectWriteResou
 			_candidateCommentRects[i].SetRect(w, height, w, height + size.cy);
 		}
 		_candidateCommentRects[i].OffsetRect(offsetX, offsetY);
+		if (_style.hilited_mark_color & 0xff000000 && i < (candidates.size()-1))
+			w += MARK_GAP;
 	}
 	if(!_style.color_font)
 		dc.SelectFont(oldFont);
+	int newh = 0;
+	int mintop = _candidateTextRects[0].bottom;
+	int maxbot = _candidateTextRects[0].top;
 	for (size_t i = 0; i < candidates.size() && i < MAX_CANDIDATES_COUNT; ++i)
 	{
 		int ol = 0, ot = 0, oc = 0;
@@ -137,7 +161,17 @@ void HorizontalLayout::DoLayout(CDCHandle dc, GDIFonts* pFonts, DirectWriteResou
 		_candidateLabelRects[i].OffsetRect(0, ol);
 		_candidateTextRects[i].OffsetRect(0, ot);
 		_candidateCommentRects[i].OffsetRect(0, oc);
+		mintop = min(mintop, _candidateLabelRects[i].top);
+		mintop = min(mintop, _candidateTextRects[i].top);
+		mintop = min(mintop, _candidateCommentRects[i].top);
+		maxbot = max(maxbot, _candidateLabelRects[i].bottom);
+		maxbot = max(maxbot, _candidateTextRects[i].bottom);
+		maxbot = max(maxbot, _candidateCommentRects[i].bottom);
+		newh = min(newh, ol);
+		newh = min(newh, ot);
+		newh = min(newh, oc);
 	}
+	h -= newh;
 	w += real_margin_x;
 
 	/* Highlighted Candidate */
@@ -157,7 +191,10 @@ void HorizontalLayout::DoLayout(CDCHandle dc, GDIFonts* pFonts, DirectWriteResou
 			hlTop = min(hlTop, _candidateCommentRects[i].top);
 			hlBot = max(hlBot, _candidateCommentRects[i].bottom);
 		}
-		_candidateRects[i].SetRect(_candidateLabelRects[i].left, hlTop, _candidateCommentRects[i].right, hlBot);
+		hlTop = min(mintop, hlTop);
+		hlBot = max(maxbot, hlBot);
+		int gap = (_style.hilited_mark_color & 0xff000000)!=0 ? MARK_GAP : 0;
+		_candidateRects[i].SetRect(_candidateLabelRects[i].left - gap, hlTop, _candidateCommentRects[i].right, hlBot);
 	}
 
 	width = max(width, w);

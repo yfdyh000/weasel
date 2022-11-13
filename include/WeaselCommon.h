@@ -5,6 +5,7 @@
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/string.hpp>
 
+#define GDIPVER     0x0110  // Use more advanced GDI+ features
 #define WEASEL_IME_NAME L"小狼毫"
 #define WEASEL_REG_KEY L"Software\\Rime\\Weasel"
 #define RIME_REG_KEY L"Software\\Rime"
@@ -233,7 +234,14 @@ namespace weasel
 		enum PreeditType
 		{
 			COMPOSITION,
-			PREVIEW
+			PREVIEW,
+			PREVIEW_ALL
+		};
+		enum CaptureType
+		{
+			NONE,
+			HIGHLIGHTED,
+			CANDIDATES
 		};
 		enum LayoutType
 		{
@@ -263,6 +271,7 @@ namespace weasel
 		bool inline_preedit;
 		bool color_font;
 		bool display_tray_icon;
+		CaptureType capture_type;
 		std::wstring label_text_format;
 		// layout
 		int min_width;
@@ -297,6 +306,7 @@ namespace weasel
 		int hilited_candidate_shadow_color;
 		int hilited_label_text_color;
 		int hilited_comment_text_color;
+		int hilited_mark_color;
 		// per client
 		int client_caps;
 
@@ -311,6 +321,7 @@ namespace weasel
 			preedit_type(COMPOSITION),
 			color_font(0),
 			display_tray_icon(false),
+			capture_type(UIStyle::CaptureType::NONE),
 			label_text_format(L"%s."),
 			layout_type(LAYOUT_VERTICAL),
 			min_width(0),
@@ -344,6 +355,7 @@ namespace weasel
 			hilited_candidate_shadow_color(0),
 			hilited_label_text_color(0),
 			hilited_comment_text_color(0),
+			hilited_mark_color(0),
 			client_caps(0) {}
 		bool operator!=(const UIStyle& st)
 		{
@@ -392,6 +404,7 @@ namespace weasel
 				 hilited_candidate_shadow_color != st.hilited_candidate_shadow_color ||
 				 hilited_label_text_color != st.hilited_label_text_color ||
 				 hilited_comment_text_color != st.hilited_comment_text_color ||
+				 hilited_mark_color != st.hilited_mark_color ||
 				 client_caps != st.client_caps); 
 		}
 	};
@@ -412,6 +425,7 @@ namespace boost {
 			ar & s.color_font;
 			ar & s.preedit_type;
 			ar & s.display_tray_icon;
+			ar & s.capture_type;
 			ar & s.label_text_format;
 			// layout
 			ar & s.layout_type;
@@ -447,6 +461,7 @@ namespace boost {
 			ar & s.hilited_candidate_shadow_color;
 			ar & s.hilited_label_text_color;
 			ar & s.hilited_comment_text_color;
+			ar & s.hilited_mark_color;
 			// per client
 			ar & s.client_caps;
 		}

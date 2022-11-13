@@ -52,6 +52,7 @@ private:
 	bool m_vista_greater;
 	std::string m_last_schema_id;
 	weasel::UIStyle m_base_style;
+	weasel::UIStyle m_base_style_dark;
 
 	std::function<void()> _UpdateUICallback;
 

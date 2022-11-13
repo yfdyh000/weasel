@@ -3,13 +3,15 @@
 #ifndef NTSTATUS
 typedef __success(return >= 0) LONG NTSTATUS;
 #endif
-#include <VersionHelpers.h>
+
 //#ifdef VERSIONHELPERAPI
-//
-//inline void InitVersion() {}
-//
-//#else
-//
+// Visual Studio comes with Windows SDK 10, VersionHelpers.h came with Windows 8.1 SDK, while windows sdk 8.1 came with VS2013 _MSC_VER=1800
+#if (_MSC_VER>=1800)
+#include <VersionHelpers.h>
+inline void InitVersion() {}
+
+#else
+
 #define VERSIONHELPERAPI inline bool
 
 #define _WIN32_WINNT_NT4            0x0400
@@ -98,3 +100,158 @@ inline void InitVersion()
 	}
 }
 
+
+VERSIONHELPERAPI
+IsWindowsVersionOrGreater(WORD wMajorVersion, WORD wMinorVersion, WORD wServicePackMajor, DWORD dwBuild)
+{
+	auto& g_WinVer = WinVer();
+	if (g_WinVer.native.dwMajorVersion != 0)
+	{
+		if (g_WinVer.native.dwMajorVersion > wMajorVersion)
+			return true;
+		else if (g_WinVer.native.dwMajorVersion < wMajorVersion)
+			return false;
+
+		if (g_WinVer.native.dwMinorVersion > wMinorVersion)
+			return true;
+		else if (g_WinVer.native.dwMinorVersion < wMinorVersion)
+			return false;
+
+		if (g_WinVer.native.wServicePackMajor > wServicePackMajor)
+			return true;
+		else if (g_WinVer.native.wServicePackMajor < wServicePackMajor)
+			return false;
+
+		if (g_WinVer.native.dwBuildNumber >= dwBuild)
+			return true;
+	}
+
+	return false;
+}
+
+VERSIONHELPERAPI
+IsWindowsXPOrGreater()
+{
+	return IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_WINXP), LOBYTE(_WIN32_WINNT_WINXP), 0, 0);
+}
+
+VERSIONHELPERAPI
+IsWindowsXPSP1OrGreater()
+{
+	return IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_WINXP), LOBYTE(_WIN32_WINNT_WINXP), 1, 0);
+}
+
+VERSIONHELPERAPI
+IsWindowsXPSP2OrGreater()
+{
+	return IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_WINXP), LOBYTE(_WIN32_WINNT_WINXP), 2, 0);
+}
+
+VERSIONHELPERAPI
+IsWindowsXPSP3OrGreater()
+{
+	return IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_WINXP), LOBYTE(_WIN32_WINNT_WINXP), 3, 0);
+}
+
+VERSIONHELPERAPI
+IsWindowsVistaOrGreater()
+{
+	return IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_VISTA), LOBYTE(_WIN32_WINNT_VISTA), 0, 0);
+}
+
+VERSIONHELPERAPI
+IsWindowsVistaSP1OrGreater()
+{
+	return IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_VISTA), LOBYTE(_WIN32_WINNT_VISTA), 1, 0);
+}
+
+VERSIONHELPERAPI
+IsWindowsVistaSP2OrGreater()
+{
+	return IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_VISTA), LOBYTE(_WIN32_WINNT_VISTA), 2, 0);
+}
+
+VERSIONHELPERAPI
+IsWindows7OrGreater()
+{
+	return IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_WIN7), LOBYTE(_WIN32_WINNT_WIN7), 0, 0);
+}
+
+VERSIONHELPERAPI
+IsWindows7SP1OrGreater()
+{
+	return IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_WIN7), LOBYTE(_WIN32_WINNT_WIN7), 1, 0);
+}
+
+VERSIONHELPERAPI
+IsWindows8OrGreater()
+{
+	return IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_WIN8), LOBYTE(_WIN32_WINNT_WIN8), 0, 0);
+}
+
+VERSIONHELPERAPI
+IsWindows8Point1OrGreater()
+{
+	return IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_WINBLUE), LOBYTE(_WIN32_WINNT_WINBLUE), 0, 0);
+}
+
+VERSIONHELPERAPI
+IsWindows10OrGreater()
+{
+	return IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_WIN10), LOBYTE(_WIN32_WINNT_WIN10), 0, 0);
+}
+
+VERSIONHELPERAPI
+IsWindows10AnniversaryOrGreater()
+{
+	return IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_WIN10), LOBYTE(_WIN32_WINNT_WIN10), 0, 14393);
+}
+
+VERSIONHELPERAPI
+IsWindows10CreatorsOrGreater()
+{
+	return IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_WIN10), LOBYTE(_WIN32_WINNT_WIN10), 0, 15063);
+}
+
+VERSIONHELPERAPI
+IsWindows10FallCreatorsOrGreater()
+{
+	return IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_WIN10), LOBYTE(_WIN32_WINNT_WIN10), 0, 16299);
+}
+
+VERSIONHELPERAPI
+IsWindowsServer()
+{
+	OSVERSIONINFOEXW osvi = { sizeof(osvi), 0, 0, 0, 0,{ 0 }, 0, 0, 0, VER_NT_WORKSTATION };
+	DWORDLONG        const dwlConditionMask = VerSetConditionMask(0, VER_PRODUCT_TYPE, VER_EQUAL);
+
+	return !VerifyVersionInfoW(&osvi, VER_PRODUCT_TYPE, dwlConditionMask);
+}
+
+#endif
+inline BOOL GetVersionEx2(LPOSVERSIONINFOW lpVersionInformation)
+{
+	HMODULE hNtDll = GetModuleHandleW(L"NTDLL"); // 获取ntdll.dll的句柄
+	typedef NTSTATUS(NTAPI* tRtlGetVersion)(PRTL_OSVERSIONINFOW povi); // RtlGetVersion的原型
+	tRtlGetVersion pRtlGetVersion = NULL;
+	if (hNtDll)
+	{
+		pRtlGetVersion = (tRtlGetVersion)GetProcAddress(hNtDll, "RtlGetVersion"); // 获取RtlGetVersion地址
+	}
+	if (pRtlGetVersion)
+	{
+		return pRtlGetVersion((PRTL_OSVERSIONINFOW)lpVersionInformation) >= 0; // 调用RtlGetVersion
+	}
+	return FALSE;
+}
+
+static inline BOOL IsWinVersionGreaterThan(DWORD dwMajorVersion, DWORD dwMinorVersion)
+{
+	OSVERSIONINFOEXW ovi = { sizeof ovi };
+	GetVersionEx2((LPOSVERSIONINFOW)&ovi);
+	if ((ovi.dwMajorVersion == dwMajorVersion && ovi.dwMinorVersion >= dwMinorVersion) || ovi.dwMajorVersion > dwMajorVersion)
+		return true;
+	else
+		return false;
+}
+#define IsWindows8Point10OrGreaterEx() IsWinVersionGreaterThan(6, 3)
