@@ -64,6 +64,9 @@ jobs:
       #- name: Install Rime plugins
       #  run: .\action-install-plugins-windows.bat
 
+      - name: Copy Rime files
+        run: .\ci.install.bat
+
       - name: Build Weasel
         id: build_weasel
         run: |
