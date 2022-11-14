@@ -11,7 +11,7 @@ on:
         type: string
 jobs:
   build:
-    runs-on: windows-2019
+    runs-on: windows-2022
     env:
       boost_version: 1.78.0
       BOOST_ROOT: ${{ github.workspace }}\deps\boost_1_78_0
@@ -25,7 +25,7 @@ jobs:
 
       - name: Configure build environment
         run: |
-          copy env.vs2019_ci.bat env.bat
+          copy env.vs2022_ci.bat env.bat
           $git_ref_name = git describe --always
           echo "git_ref_name=$git_ref_name" >> $env:GITHUB_ENV
 
@@ -35,7 +35,7 @@ jobs:
         with:
           path: |
             ${{ env.BOOST_ROOT }}
-          key: ${{ runner.os }}-boost-${{ env.boost_version }}-2
+          key: ${{ runner.os }}-boost-${{ env.boost_version }}
 
       - name: Install Boost
         if: steps.cache-boost.outputs.cache-hit != 'true'
@@ -51,7 +51,7 @@ jobs:
           path: |
             librime
             plum
-          key: ${{ runner.os }}-deps-${{ hashFiles('submodule-status') }}-1
+          key: ${{ runner.os }}-deps-${{ hashFiles('submodule-status') }}
 
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v1.1.3
